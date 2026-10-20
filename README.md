@@ -1,6 +1,6 @@
 # CashMine practical task
 
-Live: <!-- deployed link -->
+Live: https://cashmine-task.expo.app
 
 Expo (React Native, TypeScript) app delivered as a mobile web app.
 

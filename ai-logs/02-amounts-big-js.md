@@ -15,7 +15,7 @@ Options it gave:
 
 Recommended big.js, with one caveat: big.js accepts `".5"` and `"1e-3"`, which the API rejects, so the amount format still needs our own check before anything reaches Big.
 
-**Me:** Let's use big.js for the calculations, and note it in ai-logs.
+**Me:** Let's go with big.js for the calculations, and note it in ai-logs.
 
 **Decision: big.js for all amount math.**
 
@@ -40,7 +40,7 @@ So:
 
 ## Explaining the math
 
-**Me:** You take over the amount calculations, and explain simply, with examples, how they work.
+**Me:** Take over the amount calculations, and explain how they work in simple terms, with examples.
 
 **Claude:** Rewrote `src/utils/amount.ts` on big.js and explained each function:
 

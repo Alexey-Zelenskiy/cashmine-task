@@ -22,6 +22,13 @@ export const paybackApi = api.injectEndpoints({
       responseSchema: ActivityPage,
       providesTags: ["Activity"],
     }),
+    // The newest page of history; the app reads its claims to know which
+    // ones are still pending and which the balances snapshot doesn't count yet
+    getRecentActivity: build.query<ActivityPage, void>({
+      query: () => "activity",
+      responseSchema: ActivityPage,
+      providesTags: ["Activity"],
+    }),
     getClaimOptions: build.query<ClaimOptions, string>({
       query: (asset) => ({ url: "claim-options", params: { asset } }),
       responseSchema: ClaimOptions,
@@ -47,6 +54,7 @@ export const paybackApi = api.injectEndpoints({
 export const {
   useGetBalancesQuery,
   useGetActivityInfiniteQuery,
+  useGetRecentActivityQuery,
   useGetClaimOptionsQuery,
   useCreateClaimMutation,
   useGetClaimQuery,

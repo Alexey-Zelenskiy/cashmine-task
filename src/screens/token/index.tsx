@@ -25,7 +25,8 @@ export function TokenScreen({ onSaved }: Props) {
     <View className="flex-1 justify-center gap-4 bg-white px-5">
       <Text className="text-2xl font-bold text-gray-900">Your API token</Text>
       <Text className="text-base text-gray-600">
-        Paste the token from your task email. It&apos;s kept in this browser only.
+        Paste the token from your task email. It&apos;s kept in this browser
+        only.
       </Text>
       <TextInput
         value={value}

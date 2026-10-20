@@ -1,53 +1,56 @@
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { Link } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
+import { Button } from "@/components/button";
 import type { Balance } from "@/entities/Balance";
+import { useBalances } from "@/hooks/use-balances";
 import { getApiError } from "@/store/api";
-import { useGetBalancesQuery } from "@/store/api/payback";
-import { formatUsd, totalUsd } from "@/utils/amount";
-import { cn } from "@/utils/cn";
+import { totalUsd } from "@/utils/amount";
+import { claimsToShow } from "@/utils/claims";
 
 import { BalanceRow } from "./BalanceRow";
-
-const POLL_MS = 15_000;
+import { BalancesHeader } from "./BalancesHeader";
+import { BalancesSkeleton } from "./BalancesSkeleton";
 
 const keyExtractor = (balance: Balance) => balance.asset;
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString();
-}
+const ListFooterComponent = () => (
+  <Link href="/token" className="mt-4 py-2 text-center text-sm text-gray-500">
+    Change token
+  </Link>
+);
 
 export function Home() {
-  const { data, error, isLoading, isFetching, refetch } = useGetBalancesQuery(
-    undefined,
-    { pollingInterval: POLL_MS, skipPollingIfUnfocused: true },
-  );
+  const { data, items, claims, error, isLoading, isFetching, refetch } =
+    useBalances();
   const apiError = error ? getApiError(error) : null;
 
-  const [isPulling, setIsPulling] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const pullToRefresh = async () => {
-    setIsPulling(true);
+  const refresh = useCallback(async () => {
+    setIsRefreshing(true);
     await refetch();
-    setIsPulling(false);
-  };
+    setIsRefreshing(false);
+  }, [refetch]);
 
+  const asOf = data?.asOf;
   const renderItem: ListRenderItem<Balance> = useCallback(
-    ({ item }) => <BalanceRow balance={item} />,
-    [],
+    ({ item }) => (
+      <BalanceRow
+        balance={item}
+        claims={asOf ? claimsToShow(claims, item.asset, asOf) : []}
+      />
+    ),
+    [claims, asOf],
   );
 
-  if (isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator />
-      </View>
-    );
+  if (isLoading || isRefreshing) {
+    return <BalancesSkeleton />;
   }
 
-  if (!data) {
+  if (!data || !items) {
     return (
       <View className="flex-1 justify-center gap-4 bg-white px-5">
         <Text className="text-xl font-bold text-gray-900">
@@ -59,7 +62,7 @@ export function Home() {
             <Button label="Change token" />
           </Link>
         ) : (
-          <Button label="Try again" onPress={refetch} loading={isFetching} />
+          <Button label="Try again" onPress={refresh} loading={isFetching} />
         )}
       </View>
     );
@@ -68,71 +71,23 @@ export function Home() {
   return (
     <View className="flex-1 bg-white">
       <FlashList
-        data={data.items}
+        data={items}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         ItemSeparatorComponent={Gap}
         contentContainerStyle={{ padding: 20 }}
-        refreshing={isPulling}
-        onRefresh={pullToRefresh}
+        refreshing={isRefreshing}
+        onRefresh={refresh}
         ListHeaderComponent={
-          <View className="mb-4 gap-4">
-            <View className="gap-1 rounded-2xl bg-gray-900 p-5">
-              <Text className="text-sm text-gray-300">Total payback</Text>
-              <Text className="text-3xl font-bold text-white">
-                {formatUsd(totalUsd(data.items))}
-              </Text>
-              <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-gray-400">
-                  As of {formatTime(data.asOf)}
-                </Text>
-                <Pressable
-                  onPress={refetch}
-                  disabled={isFetching}
-                  accessibilityRole="button"
-                  hitSlop={8}
-                >
-                  {({ pressed }) =>
-                    isFetching ? (
-                      <ActivityIndicator size="small" color="#9ca3af" />
-                    ) : (
-                      <Text
-                        className={cn([
-                          "text-xs font-semibold text-white",
-                          { "opacity-60": pressed },
-                        ])}
-                      >
-                        Refresh
-                      </Text>
-                    )
-                  }
-                </Pressable>
-              </View>
-            </View>
-
-            {apiError && (
-              <View className="gap-2 rounded-xl bg-amber-50 p-4">
-                <Text className="text-sm text-amber-900">
-                  Couldn&apos;t refresh: {apiError.message}. Showing the
-                  balances from {formatTime(data.asOf)}.
-                </Text>
-                <Button
-                  label="Try again"
-                  onPress={refetch}
-                  loading={isFetching}
-                />
-              </View>
-            )}
-          </View>
+          <BalancesHeader
+            totalUsd={totalUsd(items)}
+            asOf={data.asOf}
+            isFetching={isFetching}
+            error={apiError}
+            onRefresh={refresh}
+          />
         }
-        ListFooterComponent={
-          <Link
-            href="/token"
-            className="mt-4 py-2 text-center text-sm text-gray-500"
-          >
-            Change token
-          </Link>
-        }
+        ListFooterComponent={<ListFooterComponent />}
       />
     </View>
   );
@@ -140,32 +95,4 @@ export function Home() {
 
 function Gap() {
   return <View className="h-3" />;
-}
-
-type ButtonProps = {
-  label: string;
-  onPress?: () => void;
-  loading?: boolean;
-};
-
-function Button({ label, onPress, loading }: ButtonProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={loading}
-      accessibilityRole="button"
-      className="rounded-xl bg-gray-900 py-3"
-    >
-      {({ pressed }) => (
-        <Text
-          className={cn([
-            "text-center text-base font-semibold text-white",
-            { "opacity-60": pressed || loading },
-          ])}
-        >
-          {loading ? "Loading…" : label}
-        </Text>
-      )}
-    </Pressable>
-  );
 }

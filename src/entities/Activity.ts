@@ -35,6 +35,7 @@ export const ActivityItem = z.discriminatedUnion("type", [
   }),
 ]);
 export type ActivityItem = z.infer<typeof ActivityItem>;
+export type ActivityClaim = Extract<ActivityItem, { type: "claim" }>;
 
 export const ActivityPage = z.object({
   items: z.array(ActivityItem),

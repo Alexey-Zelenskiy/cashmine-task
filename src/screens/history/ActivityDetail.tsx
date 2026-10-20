@@ -1,9 +1,10 @@
 import { skipToken } from "@reduxjs/toolkit/query";
 import { router } from "expo-router";
 import { memo, useMemo } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { Button } from "@/components/button";
+import { Skeleton } from "@/components/skeleton";
 import {
   useGetActivityInfiniteQuery,
   useGetClaimQuery,
@@ -39,8 +40,20 @@ export function ActivityDetail({ id }: Props) {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator />
+      <View className="flex-1 gap-5 bg-white p-5">
+        <View className="gap-2">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-9 w-48" />
+          <Skeleton className="h-4 w-20" />
+        </View>
+        <View className="gap-3 rounded-xl border border-gray-200 p-4">
+          {Array.from({ length: 4 }, (_, index) => (
+            <View key={index} className="flex-row justify-between">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-28" />
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -99,7 +112,12 @@ export function ActivityDetail({ id }: Props) {
             )}
           </>
         )}
-        {isClaimLoading && !claim && <ActivityIndicator />}
+        {isClaimLoading && !claim && (
+          <View className="flex-row justify-between">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-28" />
+          </View>
+        )}
         <Row label="ID" value={id} />
       </View>
     </View>

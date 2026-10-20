@@ -1,56 +1,60 @@
-# Welcome to your Expo app 👋
+# CashMine practical task
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Live: <!-- deployed link -->
 
-## Get started
+Expo (React Native, TypeScript) app delivered as a mobile web app.
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Run locally
 
 ```bash
-npm run reset-project
+cp .env.example .env   # fill in the API URL and token
+npm install
+npm run web
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Checks: `npm run typecheck`, `npm test`.
 
-### Other setup steps
+## Deploy
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Server output (server rendering), hosted on EAS Hosting:
 
-## Learn more
+```bash
+npm run export:web
+npx eas-cli deploy --prod
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Structure
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```
+src/
+  app/          routes only (Expo Router): every file is a URL
+  screens/      screen bodies the routes render
+  components/   shared UI
+  hooks/        shared hooks
+  store/        Redux store + RTK Query api (endpoints injected per feature)
+  utils/        standalone helpers, tests next to them
+```
 
-## Join the community
+## Stack
 
-Join our community of developers creating universal apps.
+| Concern      | Choice                                   | Why                                                                                 |
+| ------------ | ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| Routing      | Expo Router, server output               | Routes are real URLs; pages are server-rendered                                     |
+| Server state | RTK Query                                | Caching and request states; `onCacheEntryAdded` streams live updates into the cache |
+| Validation   | zod via RTK Query `responseSchema`       | Every response is parsed, so a shape mismatch fails at the boundary                 |
+| Forms        | react-hook-form + zod                    | One schema for types and validation                                                 |
+| Lists        | FlashList                                | Recycling list that also runs on web                                                |
+| Styling      | NativeWind (Tailwind)                    | Same classes on web and native                                                      |
+| Tests        | jest-expo + React Native Testing Library |                                                                                     |
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Decisions and trade-offs
+
+<!-- filled in during the task -->
+
+## With more time
+
+<!-- filled in during the task -->
+
+## AI usage
+
+Conversations are in [`ai-logs/`](./ai-logs).

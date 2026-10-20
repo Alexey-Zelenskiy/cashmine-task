@@ -56,3 +56,7 @@ So:
 **Me:** Add the examples to `amount.ts`.
 
 Claude ran every example through big.js in Node first, then added them as comments above each function.
+
+**Me:** Rewrite `amount.ts` with `@description` and `@example` for each function.
+
+**Claude:** Turned the comments into JSDoc blocks, reusing the examples it had already checked in Node.

@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { SerializedError } from "@reduxjs/toolkit";
 import { skipToken, type FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { router } from "expo-router";
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   ActivityIndicator,
@@ -46,6 +46,8 @@ type Props = {
   initialAsset?: string;
 };
 
+const goBack = () => router.back();
+
 export function ClaimScreen({ initialAsset }: Props) {
   const { items, error: balancesError, refetch } = useBalances();
   const [asset, setAsset] = useState(initialAsset);
@@ -72,6 +74,81 @@ export function ClaimScreen({ initialAsset }: Props) {
   const [rejection, setRejection] = useState<string | null>(null);
   const [createClaim, { isLoading: isSubmitting }] = useCreateClaimMutation();
 
+  const destination =
+    options.data?.destinations.find((d) => d.id === destinationId) ??
+    options.data?.destinations[0];
+  const isAmountValid =
+    !!options.data && validateClaimAmount(amount, rules) === null;
+  const canReview = isAmountValid && !!destination;
+
+  const selectAsset = useCallback(
+    (next: string) => {
+      setAsset(next);
+      reset();
+      setRejection(null);
+    },
+    [reset, setAsset, setRejection],
+  );
+
+  const selectDestination = useCallback(
+    (id: string) => setValue("destinationId", id),
+    [setValue],
+  );
+
+  const available = balance?.available;
+  const fillMax = useCallback(() => {
+    if (available) setValue("amount", available, { shouldValidate: true });
+  }, [available, setValue]);
+
+  const reviewAsset = balance?.asset;
+  const destinationIdToSend = destination?.id;
+  const review = useCallback(
+    () =>
+      handleSubmit(({ amount }) => {
+        if (!reviewAsset || !destinationIdToSend) return;
+        setStep({
+          name: "review",
+          request: {
+            asset: reviewAsset,
+            amount,
+            destinationId: destinationIdToSend,
+            idempotencyKey: crypto.randomUUID(),
+          },
+        });
+      })(),
+    [handleSubmit, reviewAsset, destinationIdToSend, setStep],
+  );
+
+  const submit = useCallback(
+    async (request: CreateClaimRequest) => {
+      try {
+        const claim = await createClaim(request).unwrap();
+        setStep({ name: "submitted", claim });
+      } catch (error) {
+        const apiError = getApiError(
+          error as FetchBaseQueryError | SerializedError,
+        );
+        if (OUTCOME_UNKNOWN.has(apiError.code)) {
+          setStep({ name: "unknown", request, message: apiError.message });
+        } else {
+          setRejection(apiError.message);
+          setStep({ name: "form" });
+        }
+      }
+    },
+    [createClaim, setStep, setRejection],
+  );
+
+  // The review and "couldn't confirm" steps both send their fixed request,
+  // with its key, again
+  const sendStepRequest = useCallback(() => {
+    if (step.name === "review" || step.name === "unknown") {
+      void submit(step.request);
+    }
+  }, [step, submit]);
+
+  const backToForm = useCallback(() => setStep({ name: "form" }), [setStep]);
+
   if (!balance && balancesError) {
     return (
       <View className="flex-1 justify-center gap-4 bg-white px-5">
@@ -94,50 +171,6 @@ export function ClaimScreen({ initialAsset }: Props) {
     );
   }
 
-  const destination =
-    options.data?.destinations.find((d) => d.id === destinationId) ??
-    options.data?.destinations[0];
-
-  const isAmountValid =
-    !!options.data && validateClaimAmount(amount, rules) === null;
-  const canReview = isAmountValid && !!destination;
-
-  const selectAsset = (next: string) => {
-    setAsset(next);
-    reset();
-    setRejection(null);
-  };
-
-  const review = handleSubmit(({ amount }) => {
-    if (!destination) return;
-    setStep({
-      name: "review",
-      request: {
-        asset: balance.asset,
-        amount,
-        destinationId: destination.id,
-        idempotencyKey: crypto.randomUUID(),
-      },
-    });
-  });
-
-  const submit = async (request: CreateClaimRequest) => {
-    try {
-      const claim = await createClaim(request).unwrap();
-      setStep({ name: "submitted", claim });
-    } catch (error) {
-      const apiError = getApiError(
-        error as FetchBaseQueryError | SerializedError,
-      );
-      if (OUTCOME_UNKNOWN.has(apiError.code)) {
-        setStep({ name: "unknown", request, message: apiError.message });
-      } else {
-        setRejection(apiError.message);
-        setStep({ name: "form" });
-      }
-    }
-  };
-
   if (step.name === "submitted") {
     return <ClaimStatus initialClaim={step.claim} />;
   }
@@ -159,14 +192,10 @@ export function ClaimScreen({ initialAsset }: Props) {
         </Text>
         <Button
           label="Check again"
-          onPress={() => submit(request)}
+          onPress={sendStepRequest}
           loading={isSubmitting}
         />
-        <Button
-          label="Back to balances"
-          variant="secondary"
-          onPress={() => router.back()}
-        />
+        <Button label="Back to balances" variant="secondary" onPress={goBack} />
       </View>
     );
   }
@@ -193,14 +222,14 @@ export function ClaimScreen({ initialAsset }: Props) {
         </View>
         <Button
           label="Confirm claim"
-          onPress={() => submit(request)}
+          onPress={sendStepRequest}
           loading={isSubmitting}
         />
         <Button
           label="Edit"
           variant="secondary"
           disabled={isSubmitting}
-          onPress={() => setStep({ name: "form" })}
+          onPress={backToForm}
         />
       </ScrollView>
     );
@@ -217,8 +246,9 @@ export function ClaimScreen({ initialAsset }: Props) {
           <Chip
             key={option}
             label={option}
+            value={option}
             selected={option === balance.asset}
-            onPress={() => selectAsset(option)}
+            onSelect={selectAsset}
           />
         ))}
       </View>
@@ -245,13 +275,7 @@ export function ClaimScreen({ initialAsset }: Props) {
               />
             )}
           />
-          <Chip
-            label="Max"
-            onPress={() =>
-              setValue("amount", balance.available, { shouldValidate: true })
-            }
-            selected={false}
-          />
+          <Chip label="Max" value="max" selected={false} onSelect={fillMax} />
         </View>
         {formState.errors.amount && (
           <Text className="text-sm text-red-600">
@@ -295,8 +319,9 @@ export function ClaimScreen({ initialAsset }: Props) {
                 <Chip
                   key={d.id}
                   label={d.label}
+                  value={d.id}
                   selected={d.id === destination?.id}
-                  onPress={() => setValue("destinationId", d.id)}
+                  onSelect={selectDestination}
                 />
               ))}
             </View>
@@ -317,7 +342,7 @@ export function ClaimScreen({ initialAsset }: Props) {
   );
 }
 
-function Row({
+const Row = memo(function Row({
   label,
   value,
   strong,
@@ -339,20 +364,24 @@ function Row({
       </Text>
     </View>
   );
-}
+});
 
-function Chip({
+// Takes the value and a shared onSelect instead of an inline closure per
+// chip, so memo actually skips re-rendering the chips that didn't change
+const Chip = memo(function Chip({
   label,
+  value,
   selected,
-  onPress,
+  onSelect,
 }: {
   label: string;
+  value: string;
   selected: boolean;
-  onPress: () => void;
+  onSelect: (value: string) => void;
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => onSelect(value)}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       className={cn([
@@ -379,4 +408,4 @@ function Chip({
       )}
     </Pressable>
   );
-}
+});

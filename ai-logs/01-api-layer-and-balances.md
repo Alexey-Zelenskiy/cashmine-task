@@ -33,3 +33,21 @@ Tool: Claude Code (Claude Opus), same session as the rest of the task. The amoun
 **Me:** For the FlashList balance row, let's use StyleSheet, since Tailwind classes can load the JS thread.
 
 **Claude:** Moved `BalanceRow` to `StyleSheet.create`, with the same values the Tailwind classes had (`p-4` → 16, `text-lg` → 18/28, gray-200 → `#e5e7eb`), so the row looks the same. The styles are created once, so recycled rows don't resolve class names on the JS thread. The pressed state is now a style array, `[styles.claimLabel, pressed && styles.pressed]`. The claim pill inside the row still uses `className`: it only shows while a claim is active.
+
+**Me:** Let's show skeletons while the data is refreshing, like a React Native skeleton loader.
+
+**Claude:** Added a `Skeleton` block that pulses its opacity with Reanimated (works on web) and a `BalancesSkeleton` with the same layout as the loaded screen, so nothing jumps when data arrives. It shows on the first load and on a refresh the user asked for (pull, Refresh, Try again), but not on the 15 s background polling, which would make the screen flicker.
+
+**Me:** Move `ListHeaderComponent` into its own component like `BalanceRow`, and wrap it in `memo`.
+
+**Claude:** Moved it to `BalancesHeader` with `memo`, and wrapped `refresh` in `useCallback`, otherwise a new function on every render would defeat the `memo`.
+
+**Me:** Add a back button to each screen.
+
+**Claude:** Added a header back button to every screen except balances. A page opened by a direct link on web has no history to go back to, so it falls back to the balances screen.
+
+**Me:** Wrap everything that needs it in `useCallback` and `memo`.
+
+**Claude:** Wrapped the shared and repeated components in `memo` (`Button`, `Skeleton`, the claim pill, rows and chips), moved static handlers like `goBack` to module scope, and wrapped the claim screen's handlers in `useCallback`. Chips now take a `value` and a shared `onSelect` instead of an inline closure each, otherwise `memo` would never skip them.
+
+The React Compiler lint rule then failed with "Existing memoization could not be preserved": the compiler inferred the `useState` setters as dependencies and the manual arrays didn't list them, so it skipped optimizing the whole claim screen. Adding the (stable) setters to the dependency arrays fixed it; lint is back to 0 errors.

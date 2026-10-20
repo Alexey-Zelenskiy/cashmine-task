@@ -1,14 +1,15 @@
 import { router } from "expo-router";
+import { memo } from "react";
 import { Pressable, Text } from "react-native";
 
 import { cn } from "@/utils/cn";
 
-export function BackButton() {
-  const goBack = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace("/");
-  };
+const goBack = () => {
+  if (router.canGoBack()) router.back();
+  else router.replace("/");
+};
 
+export const BackButton = memo(function BackButton() {
   return (
     <Pressable
       onPress={goBack}
@@ -29,4 +30,4 @@ export function BackButton() {
       )}
     </Pressable>
   );
-}
+});

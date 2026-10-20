@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { memo } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 
 import { Button } from "@/components/button";
@@ -7,6 +8,8 @@ import { paybackApi, useGetClaimQuery } from "@/store/api/payback";
 import { cn } from "@/utils/cn";
 
 const STATUS_POLL_MS = 2_000;
+
+const goBack = () => router.back();
 
 type Props = {
   initialClaim: Claim;
@@ -55,16 +58,22 @@ export function ClaimStatus({ initialClaim }: Props) {
         <Row label="You receive" value={`${receiveAmount} ${asset}`} />
       </View>
 
-      <Button label="Back to balances" onPress={() => router.back()} />
+      <Button label="Back to balances" onPress={goBack} />
     </View>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+const Row = memo(function Row({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <View className="flex-row justify-between gap-4">
       <Text className="text-sm text-gray-600">{label}</Text>
       <Text className="shrink text-right text-sm text-gray-900">{value}</Text>
     </View>
   );
-}
+});

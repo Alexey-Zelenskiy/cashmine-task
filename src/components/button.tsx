@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Pressable, Text } from "react-native";
 
 import { cn } from "@/utils/cn";
@@ -10,7 +11,7 @@ type Props = {
   variant?: "primary" | "secondary";
 };
 
-export function Button({
+export const Button = memo(function Button({
   label,
   onPress,
   loading,
@@ -47,4 +48,4 @@ export function Button({
       )}
     </Pressable>
   );
-}
+});

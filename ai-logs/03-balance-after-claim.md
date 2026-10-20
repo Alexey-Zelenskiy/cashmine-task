@@ -23,6 +23,14 @@ I'd go with A. Money can't be double-claimed either way: the server checks `avai
 
 ---
 
+## Claim form
+
+**Me:** For the form, let's use React Hook Form.
+
+**Claude:** Moved the claim form to react-hook-form with a zod resolver. The schema is built from the selected asset's rules (decimals, available, minAmount) and calls the same `validateClaimAmount` the unit tests cover. Checked in the react-hook-form 7.90 source that `useForm` applies new options, including the resolver, on every render, so switching the asset switches the rules.
+
+---
+
 ## Where the app learns about claims
 
 The first version kept claims in a Redux slice, filled from the `POST /claims` and `GET /claims/{id}` responses.

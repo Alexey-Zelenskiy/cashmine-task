@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { memo, useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -14,7 +14,7 @@ type Props = {
   className?: string;
 };
 
-export function Skeleton({ className }: Props) {
+export const Skeleton = memo(function Skeleton({ className }: Props) {
   const opacity = useSharedValue(1);
 
   useEffect(() => {
@@ -29,4 +29,4 @@ export function Skeleton({ className }: Props) {
       <View className={cn(["rounded-md bg-gray-200", className])} />
     </Animated.View>
   );
-}
+});

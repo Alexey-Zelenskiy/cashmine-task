@@ -1,4 +1,5 @@
 import { skipToken } from "@reduxjs/toolkit/query";
+import { memo } from "react";
 import { Text, View } from "react-native";
 
 import type { ActivityClaim } from "@/entities/Activity";
@@ -9,7 +10,7 @@ type Props = {
   claim: ActivityClaim;
 };
 
-export function ClaimPill({ claim }: Props) {
+export const ClaimPill = memo(function ClaimPill({ claim }: Props) {
   const { status, asset, relatedId } = claim;
   const amount = claim.amount.replace(/^-/, "");
 
@@ -48,4 +49,4 @@ export function ClaimPill({ claim }: Props) {
       </Text>
     </View>
   );
-}
+});

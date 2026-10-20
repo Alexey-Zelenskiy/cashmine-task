@@ -1,10 +1,11 @@
+import { memo } from "react";
 import { View } from "react-native";
 
 import { Skeleton } from "@/components/skeleton";
 
 const ROWS = 3;
 
-export function BalancesSkeleton() {
+export const BalancesSkeleton = memo(function BalancesSkeleton() {
   return (
     <View className="flex-1 gap-4 bg-white p-5">
       <View className="gap-2 rounded-2xl bg-gray-900 p-5">
@@ -23,4 +24,4 @@ export function BalancesSkeleton() {
       ))}
     </View>
   );
-}
+});

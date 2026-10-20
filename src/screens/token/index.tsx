@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 
 import { useAppDispatch, useAppSelector } from "@/store";
@@ -15,11 +15,11 @@ export function TokenScreen({ onSaved }: Props) {
   const [value, setValue] = useState(currentToken ?? "");
   const canSave = value.trim().length > 0;
 
-  const save = () => {
+  const save = useCallback(() => {
     if (!canSave) return;
     dispatch(tokenChanged(value));
     onSaved?.();
-  };
+  }, [canSave, dispatch, value, onSaved]);
 
   return (
     <View className="flex-1 justify-center gap-4 bg-white px-5">

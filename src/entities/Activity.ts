@@ -22,7 +22,6 @@ export const ActivityItem = z.discriminatedUnion("type", [
     type: z.literal("reversal"),
     status: z.literal("confirmed"),
     exchange: z.string(),
-    // The accrual this reversal takes back
     relatedId: z.string(),
   }),
   z.object({
@@ -30,7 +29,6 @@ export const ActivityItem = z.discriminatedUnion("type", [
     type: z.literal("claim"),
     status: z.enum(["pending", "completed", "failed"]),
     exchange: z.null(),
-    // The claim id for claims made through the API, null for older ones
     relatedId: z.string().nullable(),
   }),
 ]);

@@ -14,16 +14,43 @@ describe("decimalPlaces", () => {
     ["0", 0],
     ["0.00000001", 8],
     ["820.413207", 6],
+    ["59.9999", 4],
+    ["0.10", 2],
+    ["0.0", 1],
+    ["123456789012345678901234567890.123456789", 9],
   ])("%s has %i places", (value, places) => {
     expect(decimalPlaces(value)).toBe(places);
   });
 
-  it.each([".5", "1.", "05", "1e-3", "-1", "1,5", " 1", "", "abc", "0x10"])(
-    "rejects %j",
-    (value) => {
-      expect(decimalPlaces(value)).toBeNull();
-    },
-  );
+  it.each([
+    ".5",
+    "1.",
+    "05",
+    "00",
+    "000.1",
+    "007",
+    "59..0001",
+    "1.2.3",
+    "1e-3",
+    "1E3",
+    "-1",
+    "+1",
+    "-0",
+    "1,5",
+    "1,000.5",
+    "1_000",
+    " 1",
+    "1 ",
+    "",
+    " ",
+    "abc",
+    "0x10",
+    "Infinity",
+    "NaN",
+    "١٢",
+  ])("rejects %j", (value) => {
+    expect(decimalPlaces(value)).toBeNull();
+  });
 });
 
 describe("validateClaimAmount", () => {
@@ -61,8 +88,33 @@ describe("validateClaimAmount", () => {
     );
   });
 
+  it("checks the edges of available exactly", () => {
+    const edge = { decimals: 4, minAmount: "0.01", available: "59.9999" };
+    expect(validateClaimAmount("59.9999", edge)).toBeNull();
+    expect(validateClaimAmount("59.99990", edge)).toBe(
+      "At most 4 decimal places",
+    );
+    expect(validateClaimAmount("60", edge)).toBe("Only 59.9999 is available");
+    expect(validateClaimAmount("59.99991", edge)).toBe(
+      "At most 4 decimal places",
+    );
+  });
+
+  it("rejects malformed amounts before any math", () => {
+    expect(validateClaimAmount("000.1", rules)).toBe("Enter a number like 0.5");
+    expect(validateClaimAmount("59..0001", rules)).toBe(
+      "Enter a number like 0.5",
+    );
+    expect(validateClaimAmount("0.5 ", rules)).toBe("Enter a number like 0.5");
+  });
+
+  it("treats trailing zeros as decimal places", () => {
+    expect(validateClaimAmount("0.500", { ...rules, decimals: 2 })).toBe(
+      "At most 2 decimal places",
+    );
+  });
+
   it("compares as decimals, not as strings", () => {
-    // As strings "10" < "9"; as amounts it is above 9 available
     expect(
       validateClaimAmount("10", { ...rules, available: "9", minAmount: "1" }),
     ).toBe("Only 9 is available");
@@ -72,11 +124,19 @@ describe("validateClaimAmount", () => {
 describe("receiveAmount", () => {
   it("takes the fee out of the amount exactly", () => {
     expect(receiveAmount("0.5", "0.0012")).toBe("0.4988");
-    expect(receiveAmount("0.3", "0.1")).toBe("0.2"); // 0.30000000000000004 - 0.1 with floats
+    expect(receiveAmount("0.3", "0.1")).toBe("0.2");
   });
 
   it("prints tiny amounts in plain notation", () => {
     expect(receiveAmount("0.00000003", "0.00000002")).toBe("0.00000001");
+  });
+
+  it("keeps every decimal place of the result", () => {
+    expect(receiveAmount("59.9999", "0.0001")).toBe("59.9998");
+    expect(receiveAmount("1", "0.000001")).toBe("0.999999");
+    expect(receiveAmount("123456789012345678901234567890.5", "0.25")).toBe(
+      "123456789012345678901234567890.25",
+    );
   });
 
   it("can be zero", () => {
@@ -126,7 +186,7 @@ describe("totalUsd", () => {
           usdPrice: "67123.45",
         },
       ]),
-    ).toBe("8.29"); // 8.2863899025
+    ).toBe("8.29");
   });
 
   it("is zero for no balances", () => {

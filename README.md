@@ -2,7 +2,7 @@
 
 Live: https://cashmine-task.expo.app
 
-Expo (React Native, TypeScript) app delivered as a mobile web app.
+An Expo (React Native, TypeScript) app, delivered as a web build for a phone-width screen. On first open it asks for your API token and keeps it in this browser only.
 
 ## Run locally
 
@@ -11,49 +11,15 @@ pnpm install
 pnpm web
 ```
 
-Checks: `pnpm typecheck`, `pnpm test`.
+Checks: `pnpm typecheck`, `pnpm test`, `pnpm lint`.
 
-## Deploy
+## What works
 
-Server output (server rendering), hosted on EAS Hosting:
+- **Token:** entered on first open, saved in the browser, changeable from the balances screen.
+- **Balances:** every asset with available, pending and claiming, the total in USD, and when the data is from. Loading skeletons, an error state with retry, a stale-data banner, pull-to-refresh on native and a Refresh button on web. Refreshes every 15 s.
+- **Claim:** pick an asset, enter an amount or tap Max, see the minimum, fee and what you'll receive, review, confirm, then follow the status until it completes or fails. The amount is checked against the API's rules as you type.
+- **After a claim:** the balance drops right away and a pill on the asset's card shows the claim's status.
+- **Failures:** temporary errors are retried with the same Idempotency-Key; an unknown outcome has its own screen to check again safely.
+- **Tests:** unit tests for amount parsing, validation, fee, totals and the balance adjustment (`src/utils/*.test.ts`).
 
-```bash
-pnpm export:web
-npx eas-cli deploy --prod
-```
-
-## Structure
-
-```
-src/
-  app/          routes only (Expo Router): every file is a URL
-  screens/      screen bodies the routes render
-  components/   shared UI
-  hooks/        shared hooks
-  store/        Redux store + RTK Query api (endpoints injected per feature)
-  utils/        standalone helpers, tests next to them
-```
-
-## Stack
-
-| Concern      | Choice                                   | Why                                                                                 |
-| ------------ | ---------------------------------------- | ----------------------------------------------------------------------------------- |
-| Routing      | Expo Router, server output               | Routes are real URLs; pages are server-rendered                                     |
-| Server state | RTK Query                                | Caching and request states; `onCacheEntryAdded` streams live updates into the cache |
-| Validation   | zod via RTK Query `responseSchema`       | Every response is parsed, so a shape mismatch fails at the boundary                 |
-| Forms        | react-hook-form + zod                    | One schema for types and validation                                                 |
-| Lists        | FlashList                                | Recycling list that also runs on web                                                |
-| Styling      | NativeWind (Tailwind)                    | Same classes on web and native                                                      |
-| Tests        | jest-expo + React Native Testing Library |                                                                                     |
-
-## Decisions and trade-offs
-
-<!-- filled in during the task -->
-
-## With more time
-
-<!-- filled in during the task -->
-
-## AI usage
-
-Conversations are in [`ai-logs/`](./ai-logs).
+Decisions and known issues: [NOTES.md](./NOTES.md). AI conversations: [ai-logs/](./ai-logs).

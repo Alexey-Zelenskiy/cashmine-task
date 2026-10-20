@@ -5,7 +5,6 @@ import { Amount, Timestamp } from "./common";
 export const ClaimOptions = z.object({
   asset: z.string(),
   minAmount: Amount,
-  // Taken from the claimed amount: the user receives amount - fee
   fee: Amount,
   destinations: z.array(z.object({ id: z.string(), label: z.string() })),
 });
@@ -32,7 +31,5 @@ export type CreateClaimRequest = {
   asset: string;
   amount: string;
   destinationId: string;
-  // Created once per confirmed claim and reused on every retry of it, so a
-  // retry after a lost response returns the same claim instead of a second one
   idempotencyKey: string;
 };

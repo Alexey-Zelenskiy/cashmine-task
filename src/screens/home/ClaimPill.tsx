@@ -14,7 +14,6 @@ export const ClaimPill = memo(function ClaimPill({ claim }: Props) {
   const { status, asset, relatedId } = claim;
   const amount = claim.amount.replace(/^-/, "");
 
-  // History has no failure reason; it's on the claim itself
   const { data: details } = useGetClaimQuery(
     status === "failed" && relatedId ? relatedId : skipToken,
   );

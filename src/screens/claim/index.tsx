@@ -139,8 +139,6 @@ export function ClaimScreen({ initialAsset }: Props) {
     [createClaim, setStep, setRejection],
   );
 
-  // The review and "couldn't confirm" steps both send their fixed request,
-  // with its key, again
   const sendStepRequest = useCallback(() => {
     if (step.name === "review" || step.name === "unknown") {
       void submit(step.request);
@@ -366,8 +364,6 @@ const Row = memo(function Row({
   );
 });
 
-// Takes the value and a shared onSelect instead of an inline closure per
-// chip, so memo actually skips re-rendering the chips that didn't change
 const Chip = memo(function Chip({
   label,
   value,

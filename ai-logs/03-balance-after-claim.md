@@ -38,3 +38,14 @@ The first version kept claims in a Redux slice, filled from the `POST /claims` a
 **Me:** Let's use `GET /v1/activity` instead of keeping claims in the store. Let's rely on the API.
 
 **Claude:** Removed the slice. The app now reads the newest history page: pending claims and claims the balances snapshot doesn't count yet get a pill and adjust the balance (claim amounts in history are negative, so their absolute value is used). History is polled every 2 s while a claim is pending and every 15 s otherwise; creating a claim refetches it at once. A failed pill fetches the claim for its reason. The status screen polls `GET /claims/{id}` and stops once the claim settles.
+
+---
+
+## Testing on the real API
+
+**Me:** I made a claim of 100 with 1391 available. I got the green pill, but the balance stayed at 1391. Let's add an RTK optimistic update on successful responses too, but show it informatively. How do popular wallets do it?
+
+**Claude:** The app relied on the server's history listing the new claim right away, which the docs never promised. Exchanges and wallets usually do this: the withdrawal appears at the top of the history at once as "processing", the available balance drops immediately and the amount shows as locked or in withdrawal, the status updates in place, and on failure the amount comes back with the reason. Implemented that with RTK Query:
+- on a successful `POST /claims`, `updateQueryData` puts the claim at the top of the cached history, so the balance drops and the pill appears at once;
+- the history query's `merge` keeps that claim until the server's history lists it, so a refetch that's behind can't remove it;
+- every `GET /claims/{id}` response updates the cached claim's status, so the pill goes from processing to completed or failed without waiting for the history.

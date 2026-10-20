@@ -1,5 +1,6 @@
+import { Link } from "expo-router";
 import { memo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { ActivityItem } from "@/entities/Activity";
 
@@ -18,29 +19,37 @@ export const ActivityRow = memo(function ActivityRow({ item }: Props) {
   const isNegative = amount.startsWith("-");
 
   return (
-    <View style={styles.row}>
-      <View style={styles.main}>
-        <Text style={styles.title}>
-          {TITLES[type]}
-          {exchange ? ` · ${exchange}` : ""}
-        </Text>
-        <Text style={styles.date}>{new Date(createdAt).toLocaleString()}</Text>
-      </View>
-      <View style={styles.side}>
-        <Text style={[styles.amount, isNegative && styles.negative]}>
-          {isNegative ? amount : `+${amount}`} {asset}
-        </Text>
-        <Text
-          style={[
-            styles.status,
-            status === "failed" && styles.failed,
-            status === "pending" && styles.pending,
-          ]}
-        >
-          {status}
-        </Text>
-      </View>
-    </View>
+    <Link href={{ pathname: "/history/[id]", params: { id: item.id } }} asChild>
+      <Pressable accessibilityRole="button">
+        {({ pressed }) => (
+          <View style={[styles.row, pressed && styles.pressed]}>
+            <View style={styles.main}>
+              <Text style={styles.title}>
+                {TITLES[type]}
+                {exchange ? ` · ${exchange}` : ""}
+              </Text>
+              <Text style={styles.date}>
+                {new Date(createdAt).toLocaleString()}
+              </Text>
+            </View>
+            <View style={styles.side}>
+              <Text style={[styles.amount, isNegative && styles.negative]}>
+                {isNegative ? amount : `+${amount}`} {asset}
+              </Text>
+              <Text
+                style={[
+                  styles.status,
+                  status === "failed" && styles.failed,
+                  status === "pending" && styles.pending,
+                ]}
+              >
+                {status}
+              </Text>
+            </View>
+          </View>
+        )}
+      </Pressable>
+    </Link>
   );
 });
 
@@ -90,5 +99,8 @@ const styles = StyleSheet.create({
   },
   failed: {
     color: "#b91c1c",
+  },
+  pressed: {
+    opacity: 0.6,
   },
 });

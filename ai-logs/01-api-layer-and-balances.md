@@ -59,3 +59,7 @@ The React Compiler lint rule then failed with "Existing memoization could not be
 **Me:** Let's group the history by date and add a sticky header for each day.
 
 **Claude:** `groupByDay` turns the loaded pages into one header row per local day ("Today", "Yesterday", then the date) followed by that day's items, and returns the header positions for FlashList's `stickyHeaderIndices`. `getItemType` keeps headers and rows in separate recycling pools. Covered by a unit test.
+
+**Me:** Add a skeleton and a refresh button to the history. And let's add a `history/[id]` screen, so each row opens its details: status, amounts and so on.
+
+**Claude:** History now has a skeleton for the first load and for a manual refresh, a Refresh button (pull-to-refresh only works on native), and a details route. The API has no endpoint for a single history entry, so the details screen reads the entry from the loaded history pages; for a claim it also loads `GET /claims/{id}` for the fee, the received amount and the failure reason. An entry that isn't in the loaded pages (for example after a reload) gets an "Entry not loaded" screen with a link back to the list.

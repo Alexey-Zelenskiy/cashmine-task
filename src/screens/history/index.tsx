@@ -1,6 +1,12 @@
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
-import { useCallback, useMemo } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { Button } from "@/components/button";
 import { getApiError } from "@/store/api";
@@ -8,6 +14,7 @@ import { useGetActivityInfiniteQuery } from "@/store/api/payback";
 import { groupByDay, type HistoryRow } from "@/utils/history";
 
 import { ActivityRow } from "./ActivityRow";
+import { HistorySkeleton } from "./HistorySkeleton";
 
 const keyExtractor = (row: HistoryRow) => row.key;
 
@@ -38,6 +45,31 @@ export function History() {
   );
   const { rows, headerIndices } = useMemo(() => groupByDay(items), [items]);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const refresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  }, [refetch]);
+
+  const header = useMemo(
+    () => (
+      <Pressable
+        onPress={refresh}
+        accessibilityRole="button"
+        hitSlop={8}
+        style={styles.refresh}
+      >
+        {({ pressed }) => (
+          <Text style={[styles.refreshLabel, pressed && styles.pressed]}>
+            Refresh
+          </Text>
+        )}
+      </Pressable>
+    ),
+    [refresh],
+  );
+
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetching) void fetchNextPage();
   }, [hasNextPage, isFetching, fetchNextPage]);
@@ -64,12 +96,8 @@ export function History() {
     return null;
   }, [isFetchingNextPage, error, hasNextPage, items.length, loadMore]);
 
-  if (isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator />
-      </View>
-    );
+  if (isLoading || isRefreshing) {
+    return <HistorySkeleton />;
   }
 
   if (error && items.length === 0) {
@@ -94,6 +122,9 @@ export function History() {
         getItemType={getItemType}
         renderItem={renderItem}
         stickyHeaderIndices={headerIndices}
+        refreshing={isRefreshing}
+        onRefresh={refresh}
+        ListHeaderComponent={header}
         contentContainerStyle={{ paddingHorizontal: 20 }}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
@@ -109,6 +140,20 @@ export function History() {
 }
 
 const styles = StyleSheet.create({
+  refresh: {
+    alignSelf: "flex-end",
+    paddingTop: 12,
+  },
+  refreshLabel: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+    color: "#111827",
+    textDecorationLine: "underline",
+  },
+  pressed: {
+    opacity: 0.6,
+  },
   header: {
     backgroundColor: "#ffffff",
     paddingTop: 16,

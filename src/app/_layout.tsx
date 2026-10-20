@@ -23,6 +23,7 @@ function Root() {
         options={{ title: "Payback", headerLeft: () => null }}
       />
       <Stack.Screen name="claim" options={{ title: "Claim" }} />
+      <Stack.Screen name="history" options={{ title: "History" }} />
       <Stack.Screen name="token" options={{ title: "Change token" }} />
     </Stack>
   );

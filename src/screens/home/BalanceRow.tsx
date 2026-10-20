@@ -1,12 +1,21 @@
 import { Link } from "expo-router";
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from "react-native-reanimated";
 
 import type { Balance } from "@/entities/Balance";
 import type { ActivityClaim } from "@/entities/Activity";
 import { isZero } from "@/utils/amount";
 
 import { ClaimPill } from "./ClaimPill";
+
+const RESIZE = LinearTransition.duration(250);
+const APPEAR = FadeIn.duration(250);
+const DISAPPEAR = FadeOut.duration(200);
 
 type Props = {
   balance: Balance;
@@ -16,20 +25,45 @@ type Props = {
 export const BalanceRow = memo(function BalanceRow({ balance, claims }: Props) {
   const { asset, available, pending, claiming } = balance;
   return (
-    <View style={styles.card}>
+    <Animated.View layout={RESIZE} style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.asset}>{asset}</Text>
-        <Text style={styles.available}>{available}</Text>
+        <Animated.Text
+          key={available}
+          entering={APPEAR}
+          style={styles.available}
+        >
+          {available}
+        </Animated.Text>
       </View>
       <Text style={styles.caption}>available</Text>
       {!isZero(pending) && (
-        <Text style={styles.detail}>Pending: {pending}</Text>
+        <Animated.Text
+          entering={APPEAR}
+          exiting={DISAPPEAR}
+          style={styles.detail}
+        >
+          Pending: {pending}
+        </Animated.Text>
       )}
       {!isZero(claiming) && (
-        <Text style={styles.detail}>Claiming: {claiming}</Text>
+        <Animated.Text
+          entering={APPEAR}
+          exiting={DISAPPEAR}
+          style={styles.detail}
+        >
+          Claiming: {claiming}
+        </Animated.Text>
       )}
       {claims.map((claim) => (
-        <ClaimPill key={claim.id} claim={claim} />
+        <Animated.View
+          key={`${claim.relatedId ?? claim.id}-${claim.status}`}
+          entering={APPEAR}
+          exiting={DISAPPEAR}
+          layout={RESIZE}
+        >
+          <ClaimPill claim={claim} />
+        </Animated.View>
       ))}
       <Link href={{ pathname: "/claim", params: { asset } }} asChild>
         <Pressable accessibilityRole="button" style={styles.claimButton}>
@@ -40,7 +74,7 @@ export const BalanceRow = memo(function BalanceRow({ balance, claims }: Props) {
           )}
         </Pressable>
       </Link>
-    </View>
+    </Animated.View>
   );
 });
 

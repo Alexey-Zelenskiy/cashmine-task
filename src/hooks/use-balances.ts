@@ -33,9 +33,9 @@ export function useBalances() {
 
   const items = useMemo(
     () =>
-      query.data?.items.map((balance) =>
-        withUnsnapshotted(balance, query.data!.asOf, claims),
-      ),
+      query.data?.items
+        .map((balance) => withUnsnapshotted(balance, query.data!.asOf, claims))
+        .sort((a, b) => a.asset.localeCompare(b.asset)),
     [query.data, claims],
   );
 

@@ -51,3 +51,11 @@ Tool: Claude Code (Claude Opus), same session as the rest of the task. The amoun
 **Claude:** Wrapped the shared and repeated components in `memo` (`Button`, `Skeleton`, the claim pill, rows and chips), moved static handlers like `goBack` to module scope, and wrapped the claim screen's handlers in `useCallback`. Chips now take a `value` and a shared `onSelect` instead of an inline closure each, otherwise `memo` would never skip them.
 
 The React Compiler lint rule then failed with "Existing memoization could not be preserved": the compiler inferred the `useState` setters as dependencies and the manual arrays didn't list them, so it skipped optimizing the whole claim screen. Adding the (stable) setters to the dependency arrays fixed it; lint is back to 0 errors.
+
+**Me:** The cards jump a bit after a refresh. Let's sort them, maybe by last update or by status, whichever you think is better. And let's add a nice Reanimated layout animation, e.g. when a claim settles and the money is taken, so the card changes smoothly; there's LinearTransition and so on.
+
+**Claude:** Chose alphabetical order by asset. Sorting by USD value or by the latest update would reorder the cards exactly when the user does something (a claim, a new accrual), which is the jumping we're trying to remove; alphabetical order never changes. Animations in the row: the card animates its height with `LinearTransition` when a line or pill appears; the available amount fades in when it changes; the pending and claiming lines and the pills fade in and out. Each pill is keyed by claim and status, so when a claim goes from processing to completed the old pill fades out and the new one fades in, while the optimistic entry turning into the server's entry (same claim, same status) doesn't flicker.
+
+**Me:** Let's group the history by date and add a sticky header for each day.
+
+**Claude:** `groupByDay` turns the loaded pages into one header row per local day ("Today", "Yesterday", then the date) followed by that day's items, and returns the header positions for FlashList's `stickyHeaderIndices`. `getItemType` keeps headers and rows in separate recycling pools. Covered by a unit test.

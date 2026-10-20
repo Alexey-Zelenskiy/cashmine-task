@@ -23,7 +23,6 @@
 
 ## Not done / known issues
 
-- The paged history screen (task item 4) isn't built; the cursor-based infinite query for it is ready.
 - If the user leaves the "couldn't confirm" screen without checking, the key is lost; a claim that did go through still appears in history and the balance. Next step: keep unconfirmed requests (body and key) in localStorage and offer to check them on the next open.
 - The claim status screen isn't its own route (`/claims/[id]`), so a reload loses it; the pill on the balances card still shows the status.
 - Tests cover the amount logic and the balance adjustment, not the screens.

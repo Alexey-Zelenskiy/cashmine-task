@@ -17,9 +17,14 @@ import { BalancesSkeleton } from "./BalancesSkeleton";
 const keyExtractor = (balance: Balance) => balance.asset;
 
 const ListFooterComponent = () => (
-  <Link href="/token" className="mt-4 py-2 text-center text-sm text-gray-500">
-    Change token
-  </Link>
+  <View className="mt-4 flex-row justify-center gap-6">
+    <Link href="/history" className="py-2 text-sm font-semibold text-gray-900">
+      History
+    </Link>
+    <Link href="/token" className="py-2 text-sm text-gray-500">
+      Change token
+    </Link>
+  </View>
 );
 
 export function Home() {

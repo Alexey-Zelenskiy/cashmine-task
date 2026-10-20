@@ -15,7 +15,7 @@ Options it gave:
 
 Recommended big.js, with one caveat: big.js accepts `".5"` and `"1e-3"`, which the API rejects, so the amount format still needs our own check before anything reaches Big.
 
-**Me:** Let's go with big.js for the calculations, and note it in ai-logs.
+**Me:** Let's go with big.js for the calculations.
 
 **Decision: big.js for all amount math.**
 

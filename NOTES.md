@@ -19,10 +19,16 @@
 
 - **A prompt that didn't get what I needed.** The first amount code was hand-written `bigint` math I couldn't easily follow or defend. I asked for a suitable library and then for a plain explanation with examples of every function; that's where big.js and the examples in `amount.ts` come from. [ai-logs/02-amounts-big-js.md](ai-logs/02-amounts-big-js.md)
 - **AI output that was wrong or risky.** The AI assumed a new claim appears in `GET /activity` right away. When I tested a 100 claim on a 1391 balance, the claim completed but the balance stayed at 1391, so the app now puts the claim into the cached history itself (optimistic update). When I asked to wrap everything in `useCallback` and `memo`, the dependency arrays it wrote made the React Compiler skip optimizing the whole claim screen; the compiler's lint rule caught it ("Existing memoization could not be preserved"). Also, before using big.js it ran it in Node and found that `toString()` returns `"1e-8"` and that it accepts `".5"`, which would have shown and sent wrong amounts. [ai-logs/01](ai-logs/01-api-layer-and-balances.md), [ai-logs/02](ai-logs/02-amounts-big-js.md)
+- **Reviewing the AI's code.** A final review pass found a real money bug in code the AI wrote: right after switching the asset, RTK Query still returned the previous asset's claim options, so a claim could go out with the other asset's destination and fee. Fixed by using only the options for the current asset (`currentData`) and freezing the fee and destination into the reviewed request. The same review made the app treat any 4xx as a definite rejection by HTTP status, and added a guard against a double tap on Confirm.
 - **Where I overruled the AI.** It recommended keeping claims in a Redux slice, filled from the create and status responses, for an instant update. I chose to rely on the API's history instead, so pending claims survive a reload and claims from other devices show up. [ai-logs/03-balance-after-claim.md](ai-logs/03-balance-after-claim.md)
 
 ## Not done / known issues
 
+- Until the history request has loaded (or if it keeps failing), balances and Max don't include a just-made claim, and nothing on screen says so. Next step: a banner and a disabled Max until history is loaded.
+- A page reload while a claim request is in flight (retries can take ~45 s) forgets its key. Next step: save the request with its key in localStorage before sending, and reopen it as "couldn't confirm".
+- The amount check doesn't require the amount to exceed the fee; the API's minimums are above the fees, but the app shouldn't rely on that.
+- The status screen keeps polling if `GET /claims/{id}` keeps failing, and doesn't show that error.
+- The history query's `merge` skips RTK's structural sharing, so each poll re-renders the balance rows even when nothing changed.
 - If the user leaves the "couldn't confirm" screen without checking, the key is lost; a claim that did go through still appears in history and the balance. Next step: keep unconfirmed requests (body and key) in localStorage and offer to check them on the next open.
 - The claim status screen isn't its own route (`/claims/[id]`), so a reload loses it; the pill on the balances card still shows the status.
 - Tests cover the amount logic and the balance adjustment, not the screens.

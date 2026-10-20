@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { SerializedError } from "@reduxjs/toolkit";
 import { skipToken, type FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { router } from "expo-router";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   ActivityIndicator,
@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/button";
 import type { Claim, CreateClaimRequest } from "@/entities/Claim";
 import { useBalances } from "@/hooks/use-balances";
-import { getApiError, type ApiError } from "@/store/api";
+import { getApiError } from "@/store/api";
 import {
   useCreateClaimMutation,
   useGetClaimOptionsQuery,
@@ -27,18 +27,19 @@ import { cn } from "@/utils/cn";
 import { ClaimStatus } from "./ClaimStatus";
 import { claimFormSchema, type ClaimFormValues } from "./schema";
 
-const OUTCOME_UNKNOWN = new Set<ApiError["code"]>([
-  "TIMEOUT",
-  "NETWORK",
-  "SERVER",
-  "RATE_LIMITED",
-  "INVALID_RESPONSE",
-  "UNKNOWN",
-]);
+const isDefiniteRejection = (error: unknown) => {
+  const status = (error as FetchBaseQueryError).status;
+  return typeof status === "number" && status >= 400 && status < 500;
+};
 
 type Step =
   | { name: "form" }
-  | { name: "review"; request: CreateClaimRequest }
+  | {
+      name: "review";
+      request: CreateClaimRequest;
+      fee: string;
+      destinationLabel: string;
+    }
   | { name: "unknown"; request: CreateClaimRequest; message: string }
   | { name: "submitted"; claim: Claim };
 
@@ -54,9 +55,13 @@ export function ClaimScreen({ initialAsset }: Props) {
   const balance = items?.find((b) => b.asset === asset) ?? items?.[0];
 
   const options = useGetClaimOptionsQuery(balance?.asset ?? skipToken);
+  const claimOptions =
+    options.currentData?.asset === balance?.asset
+      ? options.currentData
+      : undefined;
   const rules = {
     decimals: balance?.decimals ?? 0,
-    minAmount: options.data?.minAmount ?? "0",
+    minAmount: claimOptions?.minAmount ?? "0",
     available: balance?.available ?? "0",
   };
 
@@ -75,10 +80,10 @@ export function ClaimScreen({ initialAsset }: Props) {
   const [createClaim, { isLoading: isSubmitting }] = useCreateClaimMutation();
 
   const destination =
-    options.data?.destinations.find((d) => d.id === destinationId) ??
-    options.data?.destinations[0];
+    claimOptions?.destinations.find((d) => d.id === destinationId) ??
+    claimOptions?.destinations[0];
   const isAmountValid =
-    !!options.data && validateClaimAmount(amount, rules) === null;
+    !!claimOptions && validateClaimAmount(amount, rules) === null;
   const canReview = isAmountValid && !!destination;
 
   const selectAsset = useCallback(
@@ -101,26 +106,32 @@ export function ClaimScreen({ initialAsset }: Props) {
   }, [available, setValue]);
 
   const reviewAsset = balance?.asset;
-  const destinationIdToSend = destination?.id;
+  const reviewFee = claimOptions?.fee;
+  const reviewDestination = destination;
   const review = useCallback(
     () =>
       handleSubmit(({ amount }) => {
-        if (!reviewAsset || !destinationIdToSend) return;
+        if (!reviewAsset || !reviewFee || !reviewDestination) return;
         setStep({
           name: "review",
           request: {
             asset: reviewAsset,
             amount,
-            destinationId: destinationIdToSend,
+            destinationId: reviewDestination.id,
             idempotencyKey: crypto.randomUUID(),
           },
+          fee: reviewFee,
+          destinationLabel: reviewDestination.label,
         });
       })(),
-    [handleSubmit, reviewAsset, destinationIdToSend, setStep],
+    [handleSubmit, reviewAsset, reviewFee, reviewDestination, setStep],
   );
 
+  const inFlight = useRef(false);
   const submit = useCallback(
     async (request: CreateClaimRequest) => {
+      if (inFlight.current) return;
+      inFlight.current = true;
       try {
         const claim = await createClaim(request).unwrap();
         setStep({ name: "submitted", claim });
@@ -128,12 +139,14 @@ export function ClaimScreen({ initialAsset }: Props) {
         const apiError = getApiError(
           error as FetchBaseQueryError | SerializedError,
         );
-        if (OUTCOME_UNKNOWN.has(apiError.code)) {
-          setStep({ name: "unknown", request, message: apiError.message });
-        } else {
+        if (isDefiniteRejection(error)) {
           setRejection(apiError.message);
           setStep({ name: "form" });
+        } else {
+          setStep({ name: "unknown", request, message: apiError.message });
         }
+      } finally {
+        inFlight.current = false;
       }
     },
     [createClaim, setStep, setRejection],
@@ -210,13 +223,13 @@ export function ClaimScreen({ initialAsset }: Props) {
         </Text>
         <View className="gap-3 rounded-xl border border-gray-200 p-4">
           <Row label="Amount" value={`${request.amount} ${request.asset}`} />
-          <Row label="Fee" value={`${options.data?.fee} ${request.asset}`} />
+          <Row label="Fee" value={`${step.fee} ${request.asset}`} />
           <Row
             label="You receive"
-            value={`${receiveAmount(request.amount, options.data!.fee)} ${request.asset}`}
+            value={`${receiveAmount(request.amount, step.fee)} ${request.asset}`}
             strong
           />
-          <Row label="To" value={destination?.label ?? ""} />
+          <Row label="To" value={step.destinationLabel} />
         </View>
         <Button
           label="Confirm claim"
@@ -282,8 +295,8 @@ export function ClaimScreen({ initialAsset }: Props) {
         )}
       </View>
 
-      {options.isLoading && <ActivityIndicator />}
-      {options.isError && (
+      {options.isFetching && !claimOptions && <ActivityIndicator />}
+      {options.isError && !claimOptions && (
         <View className="gap-2">
           <Text className="text-sm text-red-600">
             Couldn&apos;t load the claim rules.
@@ -295,25 +308,25 @@ export function ClaimScreen({ initialAsset }: Props) {
           />
         </View>
       )}
-      {options.data && (
+      {claimOptions && (
         <View className="gap-3 rounded-xl border border-gray-200 p-4">
           <Row
             label="Minimum"
-            value={`${options.data.minAmount} ${balance.asset}`}
+            value={`${claimOptions.minAmount} ${balance.asset}`}
           />
-          <Row label="Fee" value={`${options.data.fee} ${balance.asset}`} />
+          <Row label="Fee" value={`${claimOptions.fee} ${balance.asset}`} />
           <Row
             label="You receive"
             value={
               isAmountValid
-                ? `${receiveAmount(amount, options.data.fee)} ${balance.asset}`
+                ? `${receiveAmount(amount, claimOptions.fee)} ${balance.asset}`
                 : "—"
             }
             strong
           />
-          {options.data.destinations.length > 1 ? (
+          {claimOptions.destinations.length > 1 ? (
             <View className="flex-row flex-wrap gap-2">
-              {options.data.destinations.map((d) => (
+              {claimOptions.destinations.map((d) => (
                 <Chip
                   key={d.id}
                   label={d.label}

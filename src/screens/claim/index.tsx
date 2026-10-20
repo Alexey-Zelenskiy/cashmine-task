@@ -29,7 +29,13 @@ import { claimFormSchema, type ClaimFormValues } from "./schema";
 
 const isDefiniteRejection = (error: unknown) => {
   const status = (error as FetchBaseQueryError).status;
-  return typeof status === "number" && status >= 400 && status < 500;
+  return (
+    typeof status === "number" &&
+    status >= 400 &&
+    status < 500 &&
+    status !== 408 &&
+    status !== 429
+  );
 };
 
 type Step =

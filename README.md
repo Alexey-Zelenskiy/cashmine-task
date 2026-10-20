@@ -7,19 +7,18 @@ Expo (React Native, TypeScript) app delivered as a mobile web app.
 ## Run locally
 
 ```bash
-cp .env.example .env   # fill in the API URL and token
-npm install
-npm run web
+pnpm install
+pnpm web
 ```
 
-Checks: `npm run typecheck`, `npm test`.
+Checks: `pnpm typecheck`, `pnpm test`.
 
 ## Deploy
 
 Server output (server rendering), hosted on EAS Hosting:
 
 ```bash
-npm run export:web
+pnpm export:web
 npx eas-cli deploy --prod
 ```
 

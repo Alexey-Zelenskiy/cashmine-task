@@ -7,7 +7,7 @@
     "scheme": "cashminetask",
     "userInterfaceStyle": "automatic",
     "web": {
-      "output": "server"
+      "output": "single"
     },
     "plugins": [
       "expo-router"
